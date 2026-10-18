@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Vending Dashboard (BLE)</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --accent-green: #2ea043;
+            --accent-blue: #58a6ff;
+            --accent-yellow: #d29922;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Styling Logo Bluetooth mirip Gambar (Glossy Circle) */
+        .bt-icon-glossy {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        .bt-icon-glossy:hover {
+            transform: scale(1.08);
+        }
+
+        /* Status Terputus (Gelap/Redup) */
+        .bt-icon-glossy .bg-circle {
+            fill: url(#gradDisconnected);
+            stroke: #30363d;
+            stroke-width: 1;
+            transition: fill 0.4s ease;
+        }
+
+        .bt-icon-glossy .bt-symbol {
+            stroke: #6e7681;
+            transition: stroke 0.4s ease;
+        }
+
+        /* Status Terhubung (Hijau Glossy persis Gambar) */
+        .bt-icon-glossy.connected .bg-circle {
+            fill: url(#gradConnected);
+            stroke: #1e7e34;
+        }
+
+        .bt-icon-glossy.connected .bt-symbol {
+            stroke: #ffffff;
+            filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4));
+        }
+
+        .bt-icon-glossy.connected {
+            filter: drop-shadow(0 0 8px rgba(46, 160, 67, 0.6));
+        }
+
+        .btn-connect {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            background-color: var(--accent-green);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.2s;
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card {
+            background: #21262d;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .card.full-width {
+            grid-column: span 2;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .card-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .unit {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        .val-volt { color: var(--accent-blue); }
+        .val-curr { color: var(--accent-yellow); }
+        .val-power { color: var(--accent-green); }
+
+        .auth-container {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <h2>
+            Solar Vending Monitor
+            
+            <!-- Logo Bluetooth Glossy SVG Persis Gambar -->
+            <svg id="btIcon" class="bt-icon-glossy" viewBox="0 0 100 100">
+                <defs>
+                    <!-- Gradient Hijau Glossy saat Terhubung -->
+                    <radialGradient id="gradConnected" cx="35%" cy="30%" r="70%">
+                        <stop offset="0%" stop-color="#4caf50" />
+                        <stop offset="50%" stop-color="#2e7d32" />
+                        <stop offset="100%" stop-color="#1b5e20" />
+                    </radialGradient>
+
+                    <!-- Gradient Gelap saat Terputus -->
+                    <radialGradient id="gradDisconnected" cx="35%" cy="30%" r="70%">
+                        <stop offset="0%" stop-color="#30363d" />
+                        <stop offset="70%" stop-color="#161b22" />
+                        <stop offset="100%" stop-color="#0d1117" />
+                    </radialGradient>
+                </defs>
+
+                <!-- Lingkaran Background -->
+                <circle class="bg-circle" cx="50" cy="50" r="46" />
+                
+                <!-- Pantulan Glossy Atas (Efek Kilau) -->
+                <path d="M 12,38 A 44,44 0 0,1 88,38 A 46,20 0 0,0 12,38 Z" fill="rgba(255,255,255,0.18)" />
+
+                <!-- Simbol Bluetooth Resmi -->
+                <path class="bt-symbol" d="M 50,18 L 50,82 L 68,66 L 36,36 L 68,34 L 50,18 Z" 
+                      fill="none" 
+                      stroke-width="7" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round" />
+            </svg>
+        </h2>
+    </div>
+
+    <button id="btnConnect" class="btn-connect" onclick="toggleBLE()">Hubungkan Bluetooth</button>
+
+    <!-- Form Input PIN Autentikasi -->
+    <div id="authSection" class="auth-container" style="display: none;">
+        <div class="card-title" style="margin-bottom: 8px;">Autentikasi Keamanan</div>
+        <label style="font-size: 0.85rem;">Masukkan PIN Keamanan Mesin:</label>
+        <input type="password" id="inputPin" placeholder="******" style="width: 100%; padding: 10px; margin: 8px 0 12px 0; border-radius: 6px; border: 1px solid #444; background: #161b22; color: #fff; font-size: 1.1rem; text-align: center;">
+        <button onclick="submitPin()" style="width: 100%; padding: 10px; background: #388bfd; border: none; color: #fff; border-radius: 6px; font-weight: bold; cursor: pointer;">Verifikasi PIN</button>
+    </div>
+
+    <!-- Area Dashboard Monitoring (Terkunci Sebelum Auth) -->
+    <div id="mainDashboard" style="opacity: 0.4; pointer-events: none;">
+        <div class="grid-cards">
+            <div class="card">
+                <div class="card-title">Tegangan</div>
+                <div class="card-value val-volt" id="valVolt">0.00 <span class="unit">V</span></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Arus</div>
+                <div class="card-value val-curr" id="valCurr">0.00 <span class="unit">A</span></div>
+            </div>
+            <div class="card full-width">
+                <div class="card-title">Daya Panel Suria</div>
+                <div class="card-value val-power" id="valPower">0.00 <span class="unit">W</span></div>
+            </div>
+        </div>
+
+        <!-- Form Setting -->
+        <div class="card full-width" style="margin-top: 15px; text-align: left;">
+            <div class="card-title" style="margin-bottom: 12px;">Pengaturan Mesin (BLE)</div>
+            
+            <label style="font-size: 0.85rem;">Volt Cutoff (V):</label>
+            <input type="number" id="inputCutoff" step="0.1" style="width: 100%; padding: 8px; margin: 4px 0 12px 0; border-radius: 6px; border: 1px solid #444; background: #161b22; color: #fff;">
+
+            <label style="font-size: 0.85rem;">Volt Reconnect (V):</label>
+            <input type="number" id="inputReconnect" step="0.1" style="width: 100%; padding: 8px; margin: 4px 0 12px 0; border-radius: 6px; border: 1px solid #444; background: #161b22; color: #fff;">
+
+            <div style="display: flex; gap: 8px;">
+                <button onclick="readSettings()" style="flex: 1; padding: 10px; background: #388bfd; border: none; color: #fff; border-radius: 6px; font-weight: bold; cursor: pointer;">Ambil Setting</button>
+                <button onclick="saveSettings()" style="flex: 1; padding: 10px; background: #2ea043; border: none; color: #fff; border-radius: 6px; font-weight: bold; cursor: pointer;">Kirim Setting</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const MONITOR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    const SETTING_UUID = "c3c9c331-1fb5-459e-8fcc-4fafc201914b";
+    const AUTH_UUID    = "d4d0d442-2fc6-460f-9edd-5fbfd102025c";
+
+    let bleDevice   = null;
+    let monitorChar = null;
+    let settingChar = null;
+    let authChar    = null;
+
+    async function toggleBLE() {
+        if (bleDevice && bleDevice.gatt.connected) {
+            bleDevice.gatt.disconnect();
+            return;
+        }
+
+        try {
+            bleDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [SERVICE_UUID]
+            });
+
+            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+            const server  = await bleDevice.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            
+            monitorChar = await service.getCharacteristic(MONITOR_UUID);
+            settingChar = await service.getCharacteristic(SETTING_UUID);
+            authChar    = await service.getCharacteristic(AUTH_UUID);
+
+            await authChar.startNotifications();
+            authChar.addEventListener('characteristicvaluechanged', handleAuthNotify);
+
+            document.getElementById('authSection').style.display = "block";
+
+        } catch (error) {
+            console.error("Gagal terhubung:", error);
+            updateUIConnected(false);
+        }
+    }
+
+    async function submitPin() {
+        if (!authChar) return;
+        const pinValue = document.getElementById('inputPin').value;
+        if (!pinValue) {
+            alert("Masukkan PIN terlebih dahulu!");
+            return;
+        }
+
+        const encoder = new TextEncoder();
+        try {
+            await authChar.writeValue(encoder.encode(pinValue));
+        } catch (e) {
+            console.error("Gagal mengirim PIN:", e);
+        }
+    }
+
+    async function handleAuthNotify(event) {
+        const decoder = new TextDecoder('utf-8');
+        const response = decoder.decode(event.target.value);
+
+        if (response === "AUTH_OK") {
+            alert("Autentikasi Berhasil!");
+            document.getElementById('authSection').style.display = "none";
+            document.getElementById('mainDashboard').style.opacity = "1";
+            document.getElementById('mainDashboard').style.pointerEvents = "auto";
+            
+            await monitorChar.startNotifications();
+            monitorChar.addEventListener('characteristicvaluechanged', handleDataNotify);
+
+            updateUIConnected(true);
+            await readSettings();
+
+        } else if (response === "AUTH_FAIL") {
+            alert("PIN Salah! Akses Ditolak.");
+            if (bleDevice) bleDevice.gatt.disconnect();
+        }
+    }
+
+    function handleDataNotify(event) {
+        const decoder = new TextDecoder('utf-8');
+        const jsonString = decoder.decode(event.target.value);
+        
+        try {
+            const data = JSON.parse(jsonString);
+            document.getElementById('valVolt').innerHTML = `${data.v.toFixed(2)} <span class="unit">V</span>`;
+            document.getElementById('valCurr').innerHTML = `${data.i.toFixed(2)} <span class="unit">A</span>`;
+            document.getElementById('valPower').innerHTML = `${data.p.toFixed(2)} <span class="unit">W</span>`;
+        } catch (e) {
+            console.error("Error parsing JSON:", e);
+        }
+    }
+
+    function onDisconnected() {
+        updateUIConnected(false);
+    }
+
+    function updateUIConnected(isConnected) {
+        const btnConnect = document.getElementById('btnConnect');
+        const btIcon = document.getElementById('btIcon');
+
+        if (isConnected) {
+            btIcon.classList.add('connected');
+            btnConnect.innerText = "Putuskan Koneksi";
+            btnConnect.style.backgroundColor = "#da3633";
+        } else {
+            btIcon.classList.remove('connected');
+            btnConnect.innerText = "Hubungkan Bluetooth";
+            btnConnect.style.backgroundColor = "#2ea043";
+            
+            document.getElementById('authSection').style.display = "none";
+            document.getElementById('mainDashboard').style.opacity = "0.4";
+            document.getElementById('mainDashboard').style.pointerEvents = "none";
+            document.getElementById('inputPin').value = "";
+            
+            document.getElementById('valVolt').innerHTML = `0.00 <span class="unit">V</span>`;
+            document.getElementById('valCurr').innerHTML = `0.00 <span class="unit">A</span>`;
+            document.getElementById('valPower').innerHTML = `0.00 <span class="unit">W</span>`;
+        }
+    }
+
+    async function readSettings() {
+        if (!settingChar) return;
+        try {
+            const value = await settingChar.readValue();
+            const decoder = new TextDecoder('utf-8');
+            const jsonString = decoder.decode(value);
+            const data = JSON.parse(jsonString);
+
+            document.getElementById('inputCutoff').value = data.v_cut;
+            document.getElementById('inputReconnect').value = data.v_rec;
+        } catch (e) {
+            console.error("Gagal membaca setting:", e);
+        }
+    }
+
+    async function saveSettings() {
+        if (!settingChar) {
+            alert("Bluetooth belum terhubung!");
+            return;
+        }
+
+        const cutVal = parseFloat(document.getElementById('inputCutoff').value);
+        const recVal = parseFloat(document.getElementById('inputReconnect').value);
+
+        const newSettingObj = {
+            v_cut: cutVal,
+            v_rec: recVal
+        };
+
+        const jsonString = JSON.stringify(newSettingObj);
+        const encoder = new TextEncoder();
+
+        try {
+            await settingChar.writeValue(encoder.encode(jsonString));
+            alert("Setting baru berhasil dikirim ke ESP32!");
+        } catch (e) {
+            console.error("Gagal mengirim setting:", e);
+            alert("Gagal menyimpan setting.");
+        }
+    }
+</script>
+</body>
+</html>
